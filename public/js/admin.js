@@ -37,6 +37,11 @@
     debounce(fn, ms = 400) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; },
   };
 
+  /* Row dropdown menus inside rounded, overflow-hidden tables would be clipped: position them against the viewport instead. */
+  document.querySelectorAll('.table-wrap [data-bs-toggle="dropdown"]').forEach((el) => {
+    new bootstrap.Dropdown(el, { popperConfig: (defaults) => ({ ...defaults, strategy: 'fixed' }) });
+  });
+
   /* Sidebar (mobile) */
   document.querySelector('.sidebar-toggle')?.addEventListener('click', () => document.querySelector('.sidebar').classList.toggle('open'));
 
