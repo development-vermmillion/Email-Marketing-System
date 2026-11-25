@@ -307,7 +307,7 @@ class CampaignSender
 
     private function campaignStillSending(int $campaignId): bool
     {
-        return Campaign::query()->whereKey($campaignId)->value('status') === CampaignStatus::Sending->value;
+        return Campaign::query()->whereKey($campaignId)->value('status') === CampaignStatus::Sending; // value() applies the enum cast
     }
 
     private function sentToday(SmtpSetting $smtp): int

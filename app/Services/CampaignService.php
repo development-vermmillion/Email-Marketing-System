@@ -374,7 +374,9 @@ class CampaignService
      */
     public function moveStatus(Campaign $campaign, array $from, CampaignStatus $to, array $extra = [], ?string $note = null): bool
     {
+        // value() runs the model's casts, so this is already a CampaignStatus (or null), not a string.
         $before = Campaign::withTrashed()->whereKey($campaign->id)->value('status');
+        $before = $before instanceof CampaignStatus ? $before : CampaignStatus::tryFrom((string) $before);
 
         $updated = Campaign::withTrashed()
             ->whereKey($campaign->id)
@@ -386,7 +388,7 @@ class CampaignService
         }
 
         $campaign->refresh();
-        event(new CampaignStatusChanged($campaign, CampaignStatus::tryFrom((string) $before), $to, $note));
+        event(new CampaignStatusChanged($campaign, $before, $to, $note));
 
         return true;
     }
