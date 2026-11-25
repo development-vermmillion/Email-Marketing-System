@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Audiences')
 @section('content')
+@php $oldGroupIds = (array) old('group_ids', []); @endphp
 <div class="page-head">
     <div>
         <h2>Audiences</h2>
@@ -96,7 +97,7 @@
                     <label class="form-label">Groups</label>
                     <div class="d-flex flex-wrap gap-2">
                         @forelse ($groups as $g)
-                            <label class="border rounded-pill px-3 py-1 small"><input type="checkbox" class="form-check-input me-1" name="group_ids[]" value="{{ $g->id }}" @checked(in_array($g->id, (array) old('group_ids', [])))> {{ $g->name }}</label>
+                            <label class="border rounded-pill px-3 py-1 small"><input type="checkbox" class="form-check-input me-1" name="group_ids[]" value="{{ $g->id }}" @checked(in_array($g->id, $oldGroupIds))> {{ $g->name }}</label>
                         @empty <span class="text-muted small">No groups yet.</span> @endforelse
                     </div>
                 </div>

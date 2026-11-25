@@ -154,9 +154,16 @@
 @endsection
 
 @push('scripts')
+@php
+    $funnel = [
+        'sent_count' => $campaign->sent_count, 'delivered_count' => $campaign->delivered_count, 'opened_count' => $campaign->opened_count,
+        'clicked_count' => $campaign->clicked_count, 'bounced_count' => $campaign->bounced_count, 'failed_count' => $campaign->failed_count,
+        'unsubscribed_count' => $campaign->unsubscribed_count,
+    ];
+@endphp
 <script>
 (function () {
-    const c = @json($campaign->only(['sent_count', 'delivered_count', 'opened_count', 'clicked_count', 'bounced_count', 'failed_count', 'unsubscribed_count']));
+    const c = @json($funnel);
     new Chart(document.getElementById('funnel'), {
         type: 'bar',
         data: { labels: ['Sent', 'Delivered', 'Opened', 'Clicked', 'Bounced', 'Failed', 'Unsubscribed'],
