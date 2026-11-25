@@ -61,9 +61,9 @@ class CampaignService
 
         $out = array_intersect_key($data, array_flip($allowed));
 
-        if (array_key_exists('group_ids', $out)) {
-            $out['group_ids'] = array_values(array_unique(array_map('intval', (array) $out['group_ids'])));
-        }
+        // Unchecked checkboxes are not submitted at all: a missing key means "no groups selected" (= everyone eligible),
+        // so un-ticking every group on an existing campaign must clear the stored selection.
+        $out['group_ids'] = array_values(array_unique(array_map('intval', (array) ($out['group_ids'] ?? []))));
 
         return $out;
     }
