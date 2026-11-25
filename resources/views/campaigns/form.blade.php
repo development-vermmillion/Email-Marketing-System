@@ -40,7 +40,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label" for="subject">Email subject</label>
-                            <input id="subject" name="subject" class="form-control" value="{{ $val('subject') }}" required maxlength="255" placeholder="Hi {{ '{{first_name}}' }}, our biggest sale starts today">
+                            <input id="subject" name="subject" class="form-control" value="{{ $val('subject') }}" required maxlength="255" placeholder="Hi @{{first_name}}, our biggest sale starts today">
                             <div class="form-text">You can personalise with <code>@{{name}}</code>, <code>@{{first_name}}</code>, <code>@{{company}}</code>.</div>
                         </div>
                         <div class="col-md-4">

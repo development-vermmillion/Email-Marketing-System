@@ -26,7 +26,8 @@
             <h3>HTML source</h3>
             <div class="d-flex gap-1 flex-wrap">
                 @foreach (['name', 'first_name', 'email', 'company', 'phone', 'unsubscribe_url'] as $v)
-                    <button type="button" class="btn btn-sm btn-light insert-var" data-var="{{ '{{'.$v.'}}' }}">{{ '{{'.$v.'}}' }}</button>
+                    @php $tag = '{'.'{'.$v.'}'.'}'; @endphp
+                    <button type="button" class="btn btn-sm btn-light insert-var" data-var="{{ $tag }}">{{ $tag }}</button>
                 @endforeach
             </div></div>
             <div class="cardx-body"><textarea id="html_content" name="html_content" required>{{ old('html_content', $template->html_content) }}</textarea>
