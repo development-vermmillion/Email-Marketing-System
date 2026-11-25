@@ -1,6 +1,6 @@
 # Email Marketing System
 
-Laravel 13 / PHP 8.3 bulk email platform: audiences with CSV import, groups, campaigns, HTML templates, SMTP relay settings, a queue-based idempotent sending engine, reports, webhooks, unsubscribe and suppression handling.
+Laravel 12 / PHP 8.2+ bulk email platform: audiences with CSV import, groups, campaigns, HTML templates, SMTP relay settings, a queue-based idempotent sending engine, reports, webhooks, unsubscribe and suppression handling.
 
 ## Features
 
