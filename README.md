@@ -26,6 +26,18 @@ php artisan queue:work --queue=emails,imports,default
 ```
 Login with `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` (a password is generated and printed if left empty).
 
+### Local XAMPP (Windows, no Redis)
+
+XAMPP has no Redis server or `phpredis` extension, so use the database for queue and cache in your local `.env`:
+
+```
+DB_CONNECTION=mysql        # create the database in phpMyAdmin first
+QUEUE_CONNECTION=database
+CACHE_STORE=database
+SESSION_DRIVER=database
+```
+Then `php artisan config:clear`, `php artisan migrate --seed`, and keep a worker running in a second terminal: `php artisan queue:work --queue=emails,imports,default`. Without the worker, imports and campaigns stay queued. Production should use Redis (the Redis client defaults to the pure-PHP `predis` package, so no PHP extension is needed there either).
+
 ## Tests
 
 ```bash
