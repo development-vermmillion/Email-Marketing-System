@@ -90,6 +90,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/', [EmailValidationController::class, 'index'])->name('index');
         Route::post('/', [EmailValidationController::class, 'store'])->middleware('throttle:sending-actions')->name('store');
         Route::post('check', [EmailValidationController::class, 'check'])->middleware('throttle:60,1')->name('check');
+        Route::post('probe-test', [EmailValidationController::class, 'probeTest'])->middleware('throttle:sending-actions')->name('probe-test');
         Route::post('deactivate-invalid', [EmailValidationController::class, 'deactivate'])->name('deactivate');
         Route::get('export', [EmailValidationController::class, 'export'])->name('export');
         Route::get('{run}', [EmailValidationController::class, 'show'])->name('show')->whereNumber('run');

@@ -4,7 +4,7 @@
 <div class="page-head">
     <div>
         <h2>Validation run #{{ $run->id }}</h2>
-        <p>{{ $run->scopeLabel() }} · started {{ $run->created_at->diffForHumans() }}@if ($run->user) by {{ $run->user->name }}@endif. It runs in the background, so you can leave this page.</p>
+        <p>{{ $run->scopeLabel() }}@if ($run->smtp_probe) · with mailbox check@endif · started {{ $run->created_at->diffForHumans() }}@if ($run->user) by {{ $run->user->name }}@endif. It runs in the background, so you can leave this page.</p>
     </div>
     <div class="d-flex gap-2">
         @if ($run->isActive())

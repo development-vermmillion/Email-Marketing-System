@@ -43,6 +43,15 @@ return [
         // Contacts whose address failed validation are left out of new campaigns (they would only bounce).
         'skip_invalid' => (bool) env('MAILING_SKIP_INVALID_EMAILS', true),
         'chunk_size' => 200,
+
+        // Mailbox-level check: ask the recipient's mail server whether it accepts the address (no email is sent).
+        // Needs outbound port 25, which home connections and many cloud hosts block. See docs/DEPLOYMENT.md.
+        'smtp_probe' => (bool) env('MAILING_VALIDATION_SMTP_PROBE', false),
+        'probe_helo' => env('MAILING_PROBE_HELO'),        // your server's public host name (must resolve); defaults to the APP_URL host
+        'probe_mail_from' => env('MAILING_PROBE_FROM'),   // envelope sender used for the probe; defaults to verify@<helo host>
+        'probe_port' => (int) env('MAILING_PROBE_PORT', 25),
+        'probe_timeout' => (int) env('MAILING_PROBE_TIMEOUT', 8),
+        'probe_delay_ms' => (int) env('MAILING_PROBE_DELAY_MS', 1000), // minimum gap between probes to the same domain
     ],
 
     'event_retention_days' => 365,

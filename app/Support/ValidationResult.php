@@ -16,6 +16,10 @@ final class ValidationResult
         'disposable' => 'Disposable / temporary email service',
         'role' => 'Shared team mailbox (e.g. info@, support@)',
         'typo' => 'Probably a typo in the domain name',
+        'mailbox_not_found' => 'The recipient\'s mail server says this mailbox does not exist',
+        'catch_all' => 'The mail server accepts any address, so this mailbox cannot be confirmed',
+        'mailbox_confirmed' => 'Mailbox confirmed by the recipient\'s mail server',
+        'unverified' => 'Domain is fine, but the mailbox could not be confirmed',
     ];
 
     public function __construct(

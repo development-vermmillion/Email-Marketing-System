@@ -13,6 +13,7 @@ class EmailValidationRun extends Model
     {
         return [
             'deactivate_invalid' => 'boolean',
+            'smtp_probe' => 'boolean',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
         ];

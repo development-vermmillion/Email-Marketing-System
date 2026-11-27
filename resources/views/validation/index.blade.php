@@ -40,6 +40,7 @@
                     <select name="group_id" class="form-select mt-1" style="max-width:320px"><option value="">Choose a group…</option>@foreach ($groups as $g)<option value="{{ $g->id }}">{{ $g->name }}</option>@endforeach</select>
                 </div>
                 <label class="d-flex gap-2 mb-3"><input type="checkbox" class="form-check-input mt-1" name="deactivate_invalid" value="1"><span>Set contacts with invalid addresses to <strong>inactive</strong><br><span class="small text-muted">Reversible. Inactive contacts are left out of campaigns.</span></span></label>
+                <label class="d-flex gap-2 mb-3"><input type="checkbox" class="form-check-input mt-1" name="smtp_probe" value="1" @disabled(! $probeEnabled) @checked($probeEnabled)><span>Also verify mailboxes with the recipient's mail server<br><span class="small text-muted">@if ($probeEnabled)Slower (about a second per address), and the most accurate way to find addresses that will bounce.@else Switched off. See "Mailbox check" below to enable it.@endif</span></span></label>
                 <button class="btn btn-primary" @disabled($activeRun)><i class="bi bi-patch-check me-1"></i> Start validation</button>
             </form>
         </div></div>
@@ -50,6 +51,7 @@
                 <input type="text" id="oneEmail" class="form-control" placeholder="name@company.com" autocomplete="off">
                 <button class="btn btn-light" id="oneEmailBtn" type="button">Check</button>
             </div>
+            @if ($probeEnabled)<label class="small mt-2"><input type="checkbox" class="form-check-input me-1" id="oneEmailDeep" checked> Also ask the recipient's mail server (takes a few seconds)</label>@endif
             <div id="oneEmailResult" class="mt-3 small" aria-live="polite"></div>
         </div></div>
         <div class="cardx"><div class="cardx-head"><h3>Clean-up</h3></div><div class="cardx-body d-flex flex-wrap gap-2">
@@ -65,12 +67,26 @@
     </div>
 </div>
 
+<div class="cardx mt-3"><div class="cardx-head"><h3>Mailbox check (SMTP)</h3>
+    <span class="pill pill-{{ $probeAvailable ? 'success' : ($probeEnabled ? 'warning' : 'secondary') }}">{{ $probeAvailable ? 'On' : ($probeEnabled ? 'Paused: port 25 unreachable' : 'Off') }}</span></div>
+<div class="cardx-body small">
+    <p class="mb-2">This connects to each recipient's mail server and asks whether it would accept the address, then disconnects. <strong>No email is ever sent.</strong> It is how you find addresses that look fine but don't exist, which is where most bounces come from.</p>
+    <ul class="text-muted ps-3 mb-3">
+        <li>Needs <strong>outbound port 25</strong> open. Home and office connections, and many cloud hosts, block it. Use the test below.</li>
+        <li>Large providers sometimes refuse to answer such questions, and some servers accept every address ("catch-all"). Those addresses are reported as <em>unconfirmed</em> or <em>catch-all</em>, never as invalid.</li>
+        <li>Run it from your own server, not from a machine whose IP you rely on for sending: heavy probing can get an IP blocklisted.</li>
+        <li>To enable: set <code>MAILING_VALIDATION_SMTP_PROBE=true</code> in <code>.env</code> (plus <code>MAILING_PROBE_HELO</code> to your server's public host name), then run <code>php artisan config:clear</code>.</li>
+    </ul>
+    <button class="btn btn-light btn-sm" type="button" id="probeTestBtn"><i class="bi bi-plug me-1"></i> Test port 25 from this machine</button>
+    <span id="probeTestResult" class="ms-2" aria-live="polite"></span>
+</div></div>
+
 <div class="cardx mt-3"><div class="cardx-body">
     <h3 class="h6 fw-semibold">What the result means</h3>
     <div class="row small text-muted g-3">
-        <div class="col-md-4"><x-badge color="success">Valid</x-badge> The format is correct and the domain can receive mail. This does <em>not</em> prove the mailbox exists: nobody can check that safely without sending. Real bounces are still caught from your provider's webhooks and suppressed.</div>
-        <div class="col-md-4"><x-badge color="warning">Risky</x-badge> Deliverable but a poor target: disposable inboxes, shared mailboxes such as info@ or support@, or a likely typo (a suggestion is shown). Still emailed; review them.</div>
-        <div class="col-md-4"><x-badge color="danger">Invalid</x-badge> Bad format, or the domain has no mail server. These would bounce and hurt your sender reputation.</div>
+        <div class="col-md-4"><x-badge color="success">Valid</x-badge> The format is correct and the domain can receive mail. With the mailbox check on, a green "Mailbox confirmed" means the server accepted it; otherwise it only means the domain can receive mail. Real bounces are still caught from webhooks and suppressed.</div>
+        <div class="col-md-4"><x-badge color="warning">Risky</x-badge> Deliverable but a poor target: disposable inboxes, shared mailboxes such as info@ or support@, a likely typo (a suggestion is shown), or a server that accepts every address (catch-all). Still emailed; review them.</div>
+        <div class="col-md-4"><x-badge color="danger">Invalid</x-badge> Bad format, no mail server, or (mailbox check) the server says the mailbox doesn't exist. These would bounce and hurt your sender reputation.</div>
     </div>
 </div></div>
 
@@ -107,7 +123,7 @@
             const res = await fetch('{{ route('validation.check') }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': EMS.csrf },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email, deep: !!document.getElementById('oneEmailDeep')?.checked }),
             });
             const d = await res.json();
             if (!res.ok) throw new Error(d.message || 'Could not check this address');
@@ -115,11 +131,22 @@
             const pill = document.createElement('span'); pill.className = 'pill pill-' + (colors[d.status] || 'secondary'); pill.textContent = d.status;
             const msg = document.createElement('span'); msg.className = 'ms-2'; msg.textContent = d.message;
             out.append(pill, msg);
+            if (document.getElementById('oneEmailDeep')?.checked && !d.mailbox_checked) { const n = document.createElement('div'); n.className = 'text-muted mt-1'; n.textContent = 'Mailbox check did not run (switched off or port 25 unreachable).'; out.append(n); }
         } catch (e) { out.textContent = e.message; }
         btn.disabled = false;
     };
     btn.addEventListener('click', run);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); run(); } });
+    const tb = document.getElementById('probeTestBtn'), tr = document.getElementById('probeTestResult');
+    tb.addEventListener('click', async () => {
+        tb.disabled = true; tr.className = 'ms-2 text-muted'; tr.textContent = 'Testing (up to 20 seconds)…';
+        try {
+            const res = await fetch('{{ route('validation.probe-test') }}', { method: 'POST', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': EMS.csrf } });
+            const d = await res.json();
+            tr.className = 'ms-2 ' + (d.ok ? 'text-success' : 'text-danger'); tr.textContent = d.message || 'No answer';
+        } catch (e) { tr.className = 'ms-2 text-danger'; tr.textContent = 'The test could not be run.'; }
+        tb.disabled = false;
+    });
 })();
 </script>
 @endpush

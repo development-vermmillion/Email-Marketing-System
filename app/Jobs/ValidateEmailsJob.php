@@ -43,7 +43,9 @@ class ValidateEmailsJob implements ShouldQueue
         }
 
         $deadline = microtime(true) + self::SLICE_SECONDS;
-        $chunk = max(1, (int) config('mailing.validation.chunk_size', 200));
+        $deep = $run->smtp_probe && EmailValidator::probeAvailable();
+        // Mailbox checks take seconds per address, so work in small batches and check the clock between contacts.
+        $chunk = $deep ? 25 : max(1, (int) config('mailing.validation.chunk_size', 200));
 
         while (microtime(true) < $deadline) {
             if (EmailValidationRun::whereKey($run->id)->value('status') === 'cancelled') {
@@ -60,10 +62,18 @@ class ValidateEmailsJob implements ShouldQueue
 
             $counts = ['valid' => 0, 'risky' => 0, 'invalid' => 0];
             $deactivate = [];
+            $done = 0;
+            $lastId = $run->last_id;
 
             foreach ($contacts as $contact) {
-                $result = $validator->validate($contact->email);
+                if ($done > 0 && microtime(true) >= $deadline) {
+                    break; // checkpoint below records exactly how far we got
+                }
+
+                $result = $validator->validate($contact->email, $deep);
                 $counts[$result->status]++;
+                $done++;
+                $lastId = $contact->id;
 
                 DB::table('audiences')->where('id', $contact->id)->update([
                     'email_validation_status' => $result->status,
@@ -81,8 +91,8 @@ class ValidateEmailsJob implements ShouldQueue
             }
 
             $run->forceFill([
-                'last_id' => $contacts->last()->id,
-                'processed' => $run->processed + $contacts->count(),
+                'last_id' => $lastId,
+                'processed' => $run->processed + $done,
                 'valid_count' => $run->valid_count + $counts['valid'],
                 'risky_count' => $run->risky_count + $counts['risky'],
                 'invalid_count' => $run->invalid_count + $counts['invalid'],

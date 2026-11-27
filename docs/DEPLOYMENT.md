@@ -94,6 +94,18 @@ Events are matched to recipients with a per-recipient token the system adds to e
 - `php artisan queue:failed` and `php artisan queue:retry all`.
 - Alert on: workers not running, `emails` queue growing without sending, failed jobs rising, a campaign auto-paused (activity log shows why).
 
+## 11. Mailbox verification (optional)
+
+The mailbox check connects to the recipient's mail server on port 25, asks `RCPT TO` for the address (and for a made-up one, to detect catch-all servers) and disconnects. It never sends `DATA`, so no email is delivered. It is the only reliable way to find addresses that look fine but do not exist.
+
+Requirements:
+- **Outbound port 25 must be open.** Home/office networks and many cloud providers (AWS, Google Cloud, Azure, DigitalOcean and others) block or restrict it by default; use a host that allows it or ask the provider to lift the block. Test with Email validation > "Test port 25 from this machine".
+- **A real host name.** Set `MAILING_PROBE_HELO` to a public name that resolves to this server (ideally with matching reverse DNS / PTR), and `MAILING_PROBE_FROM` to an address on a domain you own. Servers distrust anonymous probes.
+- **Keep it polite.** Probes to one domain are spaced by `MAILING_PROBE_DELAY_MS` (default 1000). Do not raise worker counts for validation. Aggressive probing can get the server's IP blocklisted, so do not run it from an IP you depend on for sending. Campaign mail itself goes through your SMTP relay, not this server.
+- Enable with `MAILING_VALIDATION_SMTP_PROBE=true`, then `php artisan config:clear`.
+
+How to read the results: *Mailbox confirmed* = the server accepted it. *Invalid: mailbox not found* = a clear "no such user" answer. *Risky: catch-all* = the server accepts everything, nothing can be confirmed. *Valid, unconfirmed* = the server could not be asked (blocked, greylisted, timeout, policy). Only a clear "no such mailbox" ever marks an address invalid. If eight different domains in a row cannot be reached, mailbox checks pause for ten minutes.
+
 ## Known limits
 
 - "Sent" means accepted by the SMTP relay, not delivered. Delivery, bounce and complaint figures need provider webhooks.

@@ -8,6 +8,7 @@ use App\Models\AudienceGroup;
 use App\Models\EmailValidationRun;
 use App\Services\ActivityLogger;
 use App\Services\EmailValidator;
+use App\Services\Verification\StreamSmtpConnection;
 use App\Support\ValidationResult;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -37,6 +38,8 @@ class EmailValidationController extends Controller
             'groups' => AudienceGroup::orderBy('name')->get(),
             'runs' => EmailValidationRun::with('group')->latest('id')->limit(10)->get(),
             'activeRun' => EmailValidationRun::whereIn('status', ['pending', 'processing'])->latest('id')->first(),
+            'probeEnabled' => (bool) config('mailing.validation.smtp_probe'),
+            'probeAvailable' => EmailValidator::probeAvailable(),
             'dnsEnabled' => (bool) config('mailing.validation.dns', true),
             'skipInvalid' => (bool) config('mailing.validation.skip_invalid', true),
         ]);
@@ -48,7 +51,12 @@ class EmailValidationController extends Controller
             'scope' => ['required', Rule::in(['unchecked', 'all', 'group'])],
             'group_id' => ['nullable', 'required_if:scope,group', 'integer', 'exists:audience_groups,id'],
             'deactivate_invalid' => ['nullable', 'boolean'],
+            'smtp_probe' => ['nullable', 'boolean'],
         ]);
+
+        if (! empty($data['smtp_probe']) && ! config('mailing.validation.smtp_probe')) {
+            return back()->withInput()->with('error', 'Mailbox checks are switched off. Set MAILING_VALIDATION_SMTP_PROBE=true in .env first (see the README).');
+        }
 
         if (EmailValidationRun::whereIn('status', ['pending', 'processing'])->exists()) {
             return back()->with('error', 'A validation run is already in progress. Wait for it to finish or cancel it first.');
@@ -58,6 +66,7 @@ class EmailValidationController extends Controller
             'scope' => $data['scope'],
             'group_id' => $data['scope'] === 'group' ? $data['group_id'] : null,
             'deactivate_invalid' => (bool) ($data['deactivate_invalid'] ?? false),
+            'smtp_probe' => (bool) ($data['smtp_probe'] ?? false),
             'user_id' => $request->user()->id,
         ]);
 
@@ -98,9 +107,36 @@ class EmailValidationController extends Controller
     /** Checks one address typed into the page (nothing is saved). */
     public function check(Request $request): JsonResponse
     {
-        $data = $request->validate(['email' => ['required', 'string', 'max:255']]);
+        $data = $request->validate(['email' => ['required', 'string', 'max:255'], 'deep' => ['nullable', 'boolean']]);
+        $deep = (bool) ($data['deep'] ?? false);
 
-        return response()->json($this->validator->validate($data['email'])->toArray());
+        $result = $this->validator->validate($data['email'], $deep)->toArray();
+        $result['mailbox_checked'] = $deep && EmailValidator::probeAvailable();
+
+        return response()->json($result);
+    }
+
+    /** Tells the admin whether this machine can reach other mail servers on port 25 (many networks block it). */
+    public function probeTest(): JsonResponse
+    {
+        $port = (int) config('mailing.validation.probe_port', 25);
+        $started = microtime(true);
+
+        foreach (['gmail-smtp-in.l.google.com', 'mx1.mail.yahoo.com', 'outlook-com.olc.protection.outlook.com'] as $host) {
+            try {
+                $conn = new StreamSmtpConnection($host, $port, 6);
+                [$code] = $conn->read();
+                $conn->close();
+
+                if ($code === 220) {
+                    return response()->json(['ok' => true, 'message' => "Port {$port} is open: {$host} answered. Mailbox checks can run from this machine."]);
+                }
+            } catch (\Throwable) {
+                // try the next one
+            }
+        }
+
+        return response()->json(['ok' => false, 'message' => "Could not reach any mail server on port {$port} (tried for ".round(microtime(true) - $started)."s). Your network or hosting provider is probably blocking outbound port 25, so mailbox checks cannot work from here."]);
     }
 
     /** Marks every contact that failed validation as inactive so they drop out of future sends. */
