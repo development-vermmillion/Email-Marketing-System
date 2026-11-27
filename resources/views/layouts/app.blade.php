@@ -17,7 +17,7 @@
     $nav = [
         ['dashboard', 'Dashboard', 'bi-grid-1x2-fill', 'dashboard'],
         ['campaigns.index', 'Campaigns', 'bi-send', 'campaigns.*'],
-        ['audiences.index', 'Audiences', 'bi-people', ['audiences.*', 'imports.*']],
+        ['audiences.index', 'Audiences', 'bi-people', ['audiences.*', 'imports.*', 'validation.*']],
         ['groups.index', 'Audience Groups', 'bi-collection', 'groups.*'],
         ['templates.index', 'Email Templates', 'bi-file-earmark-code', 'templates.*'],
         ['reports.index', 'Email Reports', 'bi-bar-chart-line', 'reports.*'],

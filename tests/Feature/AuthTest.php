@@ -12,7 +12,7 @@ class AuthTest extends TestCase
 
     public function test_guests_are_redirected_to_login(): void
     {
-        foreach (['/', '/campaigns', '/audiences', '/templates', '/reports', '/smtp', '/suppression', '/settings'] as $uri) {
+        foreach (['/', '/campaigns', '/audiences', '/templates', '/reports', '/smtp', '/suppression', '/settings', '/email-validation'] as $uri) {
             $this->get($uri)->assertRedirect('/login');
         }
     }
@@ -46,7 +46,7 @@ class AuthTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        foreach (['/', '/campaigns', '/campaigns/create', '/audiences', '/imports/create', '/groups', '/templates', '/templates/create', '/reports', '/suppression', '/smtp', '/activity', '/settings'] as $uri) {
+        foreach (['/', '/campaigns', '/campaigns/create', '/audiences', '/imports/create', '/groups', '/templates', '/templates/create', '/reports', '/suppression', '/smtp', '/activity', '/settings', '/email-validation'] as $uri) {
             $this->get($uri)->assertOk();
         }
     }

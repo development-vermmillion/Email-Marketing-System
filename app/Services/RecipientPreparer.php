@@ -13,7 +13,7 @@ class RecipientPreparer
     /**
      * Contacts a campaign would reach right now. One query shape is shared by the preview count and
      * the real preparation so the two can never disagree:
-     *   - active + subscribed + not soft-deleted
+     *   - active + subscribed + not soft-deleted + address not marked invalid by email validation
      *   - not on the suppression list
      *   - member of ANY selected group (whereHas = no duplicate rows when a contact is in 2+ groups)
      *
@@ -23,6 +23,7 @@ class RecipientPreparer
     {
         return Audience::query()
             ->sendable()
+            ->deliverable()
             ->whereNotIn('email', fn ($q) => $q->select('email')->from('suppression_list'))
             ->when(! empty($groupIds), fn (Builder $q) => $q->whereHas(
                 'groups', fn (Builder $g) => $g->whereIn('audience_groups.id', $groupIds)

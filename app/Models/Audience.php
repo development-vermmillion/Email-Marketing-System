@@ -17,6 +17,7 @@ class Audience extends Model
     protected $fillable = [
         'name', 'email', 'phone', 'company', 'status', 'subscription_status', 'source',
         'consent_at', 'consent_ip', 'unsubscribed_at', 'csv_import_id',
+        'email_validation_status', 'email_validation_reason', 'email_validated_at',
     ];
 
     protected function casts(): array
@@ -24,12 +25,22 @@ class Audience extends Model
         return [
             'consent_at' => 'datetime',
             'unsubscribed_at' => 'datetime',
+            'email_validated_at' => 'datetime',
         ];
     }
 
     public function setEmailAttribute(?string $value): void
     {
-        $this->attributes['email'] = $value === null ? null : mb_strtolower(trim($value));
+        $new = $value === null ? null : mb_strtolower(trim($value));
+
+        // A different address needs checking again.
+        if (array_key_exists('email', $this->attributes) && $this->attributes['email'] !== null && $this->attributes['email'] !== $new) {
+            $this->attributes['email_validation_status'] = null;
+            $this->attributes['email_validation_reason'] = null;
+            $this->attributes['email_validated_at'] = null;
+        }
+
+        $this->attributes['email'] = $new;
     }
 
     public function groups(): BelongsToMany
@@ -47,6 +58,16 @@ class Audience extends Model
     {
         return $query->where('status', 'active')
             ->where('subscription_status', SubscriptionStatus::Subscribed->value);
+    }
+
+    /** Leaves out addresses that failed validation (they would only bounce). Unchecked and risky contacts stay in. */
+    public function scopeDeliverable(Builder $query): Builder
+    {
+        if (! config('mailing.validation.skip_invalid', true)) {
+            return $query;
+        }
+
+        return $query->where(fn (Builder $q) => $q->whereNull('email_validation_status')->orWhere('email_validation_status', '!=', 'invalid'));
     }
 
     public function scopeSearch(Builder $query, ?string $term): Builder

@@ -26,4 +26,9 @@ class AudienceFactory extends Factory
     {
         return $this->state(fn () => ['subscription_status' => 'unsubscribed', 'unsubscribed_at' => now()]);
     }
+
+    public function validationStatus(string $status, ?string $reason = null): static
+    {
+        return $this->state(fn () => ['email_validation_status' => $status, 'email_validation_reason' => $reason, 'email_validated_at' => now()]);
+    }
 }

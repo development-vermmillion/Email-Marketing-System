@@ -37,5 +37,13 @@ return [
         'clicks' => true,
     ],
 
+    'validation' => [
+        // Look up the recipient domain's MX/A records. Turn off on a machine without working DNS.
+        'dns' => (bool) env('MAILING_VALIDATION_DNS', true),
+        // Contacts whose address failed validation are left out of new campaigns (they would only bounce).
+        'skip_invalid' => (bool) env('MAILING_SKIP_INVALID_EMAILS', true),
+        'chunk_size' => 200,
+    ],
+
     'event_retention_days' => 365,
 ];

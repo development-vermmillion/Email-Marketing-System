@@ -7,12 +7,15 @@
         <h2>Audiences</h2>
         <p>Everyone you can email. Deleting a contact removes them from all pending sends immediately; unsubscribes and bounces are kept on the suppression list.</p>
     </div>
+    <div class="d-flex gap-2">
+    <a href="{{ route('validation.index') }}" class="btn btn-light"><i class="bi bi-patch-check me-1"></i> Validate emails</a>
     <div class="dropdown">
         <button class="btn btn-dark dropdown-toggle text-uppercase" style="font-family:var(--mono);letter-spacing:.04em;font-size:.8rem" data-bs-toggle="dropdown">Add contacts</button>
         <ul class="dropdown-menu dropdown-menu-end">
             <li><a class="dropdown-item" href="{{ route('imports.create') }}"><i class="bi bi-filetype-csv"></i>Import via CSV</a></li>
             <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#audienceModal" data-create-modal="#audienceModal" data-action="{{ route('audiences.store') }}" data-title="Add contact"><i class="bi bi-person-plus"></i>Add Manually</button></li>
         </ul>
+    </div>
     </div>
 </div>
 
@@ -26,6 +29,7 @@
     <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="form-control" placeholder="Search name or email…" style="min-width:240px">
     <select name="status" class="form-select"><option value="">Any status</option>@foreach (['active', 'inactive'] as $v)<option value="{{ $v }}" @selected(($filters['status'] ?? '') === $v)>{{ ucfirst($v) }}</option>@endforeach</select>
     <select name="subscription" class="form-select"><option value="">Any subscription</option>@foreach (\App\Enums\SubscriptionStatus::values() as $v)<option value="{{ $v }}" @selected(($filters['subscription'] ?? '') === $v)>{{ ucfirst($v) }}</option>@endforeach</select>
+    <select name="validation" class="form-select"><option value="">Any email check</option>@foreach (['valid' => 'Valid', 'risky' => 'Risky', 'invalid' => 'Invalid', 'unchecked' => 'Not checked'] as $v => $l)<option value="{{ $v }}" @selected(($filters['validation'] ?? '') === $v)>{{ $l }}</option>@endforeach</select>
     <select name="group" class="form-select"><option value="">Any group</option>@foreach ($groups as $g)<option value="{{ $g->id }}" @selected((int) ($filters['group'] ?? 0) === $g->id)>{{ $g->name }}</option>@endforeach</select>
     <button class="btn btn-light"><i class="bi bi-funnel me-1"></i>Filter</button>
     @if (array_filter($filters))<a href="{{ route('audiences.index') }}" class="btn btn-link">Reset</a>@endif
@@ -44,7 +48,7 @@
         <table class="table align-middle">
             <thead><tr>
                 <th style="width:40px"><input type="checkbox" class="form-check-input" data-select-all aria-label="Select all"></th>
-                <th>Contact</th><th>Company</th><th>Groups</th><th>Status</th><th>Subscription</th><th>Added</th><th></th>
+                <th>Contact</th><th>Company</th><th>Groups</th><th>Status</th><th>Subscription</th><th>Email check</th><th>Added</th><th></th>
             </tr></thead>
             <tbody>
             @forelse ($audiences as $a)
@@ -58,6 +62,7 @@
                     <td>@foreach ($a->groups as $g)<span class="pill pill-secondary me-1" style="margin-bottom:2px">{{ $g->name }}</span>@endforeach</td>
                     <td><x-badge :color="$a->status === 'active' ? 'success' : 'secondary'">{{ ucfirst($a->status) }}</x-badge></td>
                     <td><x-badge :color="\App\Enums\SubscriptionStatus::from($a->subscription_status)->badge()">{{ ucfirst($a->subscription_status) }}</x-badge></td>
+                    <td>@if ($a->email_validation_status)<x-badge :color="['valid' => 'success', 'risky' => 'warning', 'invalid' => 'danger'][$a->email_validation_status] ?? 'secondary'"><span title="{{ \App\Support\ValidationResult::label($a->email_validation_reason) }}">{{ ucfirst($a->email_validation_status) }}</span></x-badge>@else<span class="text-muted small">Not checked</span>@endif</td>
                     <td class="small text-muted">{{ $a->created_at->format('M j, Y') }}<br>{{ $a->source === 'csv_import' ? 'CSV import' : ucfirst($a->source) }}</td>
                     <td class="text-end row-actions">
                         <button class="btn btn-light" title="Edit" data-edit-modal="#audienceModal" data-title="Edit contact" data-action="{{ route('audiences.update', $a) }}"
@@ -66,7 +71,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="8"><x-empty-state icon="bi-people" title="No contacts found">Add a contact manually or import a CSV file.</x-empty-state></td></tr>
+                <tr><td colspan="9"><x-empty-state icon="bi-people" title="No contacts found">Add a contact manually or import a CSV file.</x-empty-state></td></tr>
             @endforelse
             </tbody>
         </table>

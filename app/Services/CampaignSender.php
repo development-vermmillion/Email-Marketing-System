@@ -83,7 +83,7 @@ class CampaignSender
 
         $audiences = Audience::withTrashed()
             ->whereIn('id', $recipients->pluck('audience_id')->filter()->all())
-            ->get(['id', 'status', 'subscription_status', 'deleted_at'])
+            ->get(['id', 'status', 'subscription_status', 'email_validation_status', 'deleted_at'])
             ->keyBy('id');
         $suppressed = $this->suppression->suppressedAmong($recipients->pluck('email'));
 
@@ -292,6 +292,10 @@ class CampaignSender
 
         if ($a->status !== 'active' || $a->subscription_status !== 'subscribed') {
             return 'Contact is inactive or unsubscribed';
+        }
+
+        if ($a->email_validation_status === 'invalid' && config('mailing.validation.skip_invalid', true)) {
+            return 'Email address failed validation';
         }
 
         return null;

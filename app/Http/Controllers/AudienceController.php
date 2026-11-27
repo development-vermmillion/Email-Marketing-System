@@ -24,6 +24,9 @@ class AudienceController extends Controller
             ->search($request->query('q'))
             ->when($request->query('status'), fn ($q, $v) => $q->where('status', $v))
             ->when($request->query('subscription'), fn ($q, $v) => $q->where('subscription_status', $v))
+            ->when($request->query('validation'), fn ($q, $v) => $v === 'unchecked'
+                ? $q->whereNull('email_validation_status')
+                : $q->where('email_validation_status', $v))
             ->when($request->query('group'), fn ($q, $id) => $q->whereHas('groups', fn ($g) => $g->where('audience_groups.id', $id)));
 
         return view('audiences.index', [
@@ -34,7 +37,7 @@ class AudienceController extends Controller
                 'subscribed' => Audience::sendable()->count(),
                 'unsubscribed' => Audience::where('subscription_status', 'unsubscribed')->count(),
             ],
-            'filters' => $request->only(['q', 'status', 'subscription', 'group']),
+            'filters' => $request->only(['q', 'status', 'subscription', 'group', 'validation']),
         ]);
     }
 

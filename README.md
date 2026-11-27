@@ -12,6 +12,7 @@ Laravel 12 / PHP 8.2+ bulk email platform: audiences with CSV import, groups, ca
 - Sending engine: atomic per-recipient claim (a recipient is never sent twice, even if a job runs twice), temporary / permanent / systemic failure handling with automatic pause on auth or connection errors
 - Reports with CSV export; tracking via signed links and open pixel
 - Suppression list (append-only, survives contact deletion), RFC 8058 one-click unsubscribe headers
+- Email validation (Audiences > Validate emails): background checks of format, domain mail records (MX/A), disposable domains, shared mailboxes (info@, support@) and common domain typos. Results: valid / risky / invalid, shown on each contact; invalid addresses are left out of campaigns and can be exported or deactivated. A single address can be tested instantly. It does not confirm that a specific mailbox exists (that cannot be done safely); real bounces are still caught from provider webhooks.
 - Activity log
 
 ## Local setup

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\EmailValidationController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\AudienceGroupController;
@@ -82,6 +83,18 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('{import}', [ImportController::class, 'show'])->name('show');
         Route::get('{import}/progress', [ImportController::class, 'progress'])->name('progress');
         Route::get('{import}/download', [ImportController::class, 'download'])->name('download');
+    });
+
+    // Email validation
+    Route::prefix('email-validation')->name('validation.')->group(function () {
+        Route::get('/', [EmailValidationController::class, 'index'])->name('index');
+        Route::post('/', [EmailValidationController::class, 'store'])->middleware('throttle:sending-actions')->name('store');
+        Route::post('check', [EmailValidationController::class, 'check'])->middleware('throttle:60,1')->name('check');
+        Route::post('deactivate-invalid', [EmailValidationController::class, 'deactivate'])->name('deactivate');
+        Route::get('export', [EmailValidationController::class, 'export'])->name('export');
+        Route::get('{run}', [EmailValidationController::class, 'show'])->name('show')->whereNumber('run');
+        Route::get('{run}/progress', [EmailValidationController::class, 'progress'])->name('progress')->whereNumber('run');
+        Route::post('{run}/cancel', [EmailValidationController::class, 'cancel'])->name('cancel')->whereNumber('run');
     });
 
     Route::resource('groups', AudienceGroupController::class)->only(['index', 'store', 'update', 'destroy'])->parameters(['groups' => 'group']);
